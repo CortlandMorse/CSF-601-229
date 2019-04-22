@@ -3,10 +3,13 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <algorithm>
+#include <sstream>
 
 using std::cin; using std::vector;
 using std::cout; using std::pair;
 using std::string; using std::getline;
+using std::size_t;
 
 //takes stdin and puts lines into a vector
 vector<string> stdin_vector(vector<string> &vect) {
@@ -37,7 +40,7 @@ vector<string> filein_vector(vector<string> &vect, string fn) {
 }
 
 //optional, prints memory to file
-int fileout_mem(vector<int> &vect, string fn) {
+int fileout_mem(vector<int> vect, string fn) {
   std::ofstream OutFile;
   OutFile.open(fn, std::ios::out | std::ios::binary);
   if ((OutFile.rdstate()& std::ofstream::failbit) != 0) {
@@ -55,9 +58,10 @@ int fileout_mem(vector<int> &vect, string fn) {
 }
 
 //prints the error message
-void err_msg(int error) {
-  cout << "ERROR: ";
+void error_check(int error) {
   switch(error) {
+    case 0:
+      break;
     case 1:
       cout << "The wrong number of arguments were given.(1)\n";
       break;
@@ -85,8 +89,8 @@ void err_msg(int error) {
     case 9:
       cout << "Memory allocation error.(9)\n";
       break;
-
   }
+
 }
 
 //returns mem value as a pair
@@ -388,16 +392,94 @@ vector<string> scram_sim(vector<int> &mem, int &error) {
   return out;
 }
 
-//input processing
-vector<string> process_inp(vector<string> &inp, int &error) {
-  int len = inp.size();
-  for (int i = 0; i < len; i++) {
-    int ind = inp[i].find(":");
+//returns 0 if good op, 1 if bad
+int bad_op(string instr) {
+
+}
+
+//helper function which counts # of words
+int count_words(string line) {
+  std::stringstream s(line);
+  int count = 0;
+  string word;
+  while (s >> word) {
+    count++;
   }
+
+  return count;
+}
+
+//input processing
+vector<string> process_inp(vector<string> inp, int &error) {
+  int len = inp.size();
+  vector<string> out;//output vector
+  for (int i = 0; i < len; i++) {
+    string line = inp[i];
+    //remove the comment
+    size_t comment = line.find(";");
+    if (comment != string::npos) {
+      line = line.substr(0,comment);
+    }
+
+    int w_count = count_words(line);
+    std::stringstream s(line);
+
+    string label_str = "";
+    string instr_str = "";
+    string arg_str = "";
+    if (w_count == 0) {
+      //do nothing
+    } else if (w_count == 1) {
+      if (isspace(line[0])) {
+        s >> instr_str;
+      } else {
+        s >> label_str;
+      }
+    } else if (w_count == 2) {
+      if (isspace(line[0])) {
+        s >> instr_str;
+        s >> arg_str;
+      } else {
+        s >> label_str;
+        s >> instr_str;
+      }
+    } else if (w_count == 3) {
+        s >> label_str;
+        s >> instr_str;
+        s >> arg_str;
+    } else {
+      error = 7;
+    }
+
+    if (label_str.size()) {
+      size_t pos = label_str.find(":");
+      if (pos == string::npos) {
+        error = 7;
+        return out;
+      }
+    }
+
+    if (instr_str.size()) {
+      if (instr_str.size() != 3) {
+        error = 5;
+        return out;
+      }
+    }
+
+    line = label_str + instr_str + arg_str;
+
+    if (line.size() != 0) {
+      out.push_back(line);
+    }
+  }
+
+  return out;
 }
 
 int main(int argc, char* arg[]) {
   vector<string> inp;//scram data
+  vector<int> bin[256];
+  int error = 0;
   if (argc == 1) {//read from stdin
     inp = stdin_vector(inp);
   } else if (argc == 2 || argc == 3) {
@@ -409,9 +491,21 @@ int main(int argc, char* arg[]) {
     return 1;
   }
 
-  for (unsigned int i = 0; i < inp.size(); i++) {
-    cout << inp[i] << "\n";
+  vector<string> inp_new = process_inp(inp,error);
+  if (error) {
+    error_check(error);
+    return error;
   }
+
+  //debug hell
+  for (unsigned int i = 0; i < inp.size(); i++) {
+    cout << inp[i] << " pos="<< i << "\n";
+  }
+  cout << "\n";
+  for (unsigned int i = 0; i <inp_new.size(); i++) {
+    cout << inp_new[i] << " pos=" << i << "\n";
+  }
+  //end debug hell
 
   vector<string> output;//output of asm
 
