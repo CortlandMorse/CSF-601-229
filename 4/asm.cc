@@ -5,11 +5,12 @@
 #include <utility>
 #include <algorithm>
 #include <sstream>
+#include <map>
 
 using std::cin; using std::vector;
 using std::cout; using std::pair;
 using std::string; using std::getline;
-using std::size_t;
+using std::size_t; using std::map;
 
 //takes stdin and puts lines into a vector
 vector<string> stdin_vector(vector<string> &vect) {
@@ -21,13 +22,13 @@ vector<string> stdin_vector(vector<string> &vect) {
   return vect;
 }
 
-//takes file and puts byte values into a vector
-vector<string> filein_vector(vector<string> &vect, string fn) {
+//optional, reads file and puts line into a vector
+vector<string> filein_vector(vector<string> &vect, string fn, int &error) {
   std::ifstream lines;
   lines.open(fn);
 
   if (!lines) {//returns -1 if file can't be opened
-    vect.push_back("ErRoR");
+    error = 2;
     return vect;
   }
 
@@ -39,8 +40,13 @@ vector<string> filein_vector(vector<string> &vect, string fn) {
   return vect;
 }
 
+//takes bin and prints to stdout
+void stdout_bin(vector<int> vect, int &error) {
+  return;
+}
+
 //optional, prints memory to file
-int fileout_mem(vector<int> vect, string fn) {
+int fileout_bin(vector<int> vect, string fn, int &error) {
   std::ofstream OutFile;
   OutFile.open(fn, std::ios::out | std::ios::binary);
   if ((OutFile.rdstate()& std::ofstream::failbit) != 0) {
@@ -93,308 +99,181 @@ void error_check(int error) {
 
 }
 
-//returns mem value as a pair
-pair<int,int> upp_low(int val) {
-  int low = val%16;
-  int upp = (val/16)%16;
-  return std::make_pair(upp,low);
-}
-
-//returns true if instruction has arg
-bool arg_bool(int val) {
-  if (val > 0 && val < 240) {
-    return true;
+//returns value to place at location in bin
+int bin_val(string instr, int good_arg, int arg_val, int &error) {
+  int better_arg = 0;//to find if we can use arg for most instructions
+  int better_val = 0;//value
+  if ((arg_val >= -8 && arg_val <= 15)&&(good_arg == 1)) {
+    better_arg = 1;
+    better_val = arg_val&15;
   }
-  return false;
-}
-
-//returns the mnemonic for the instruction
-string mnemonic(int upp, int low) {
-  string code[32] = {"HLT","EXT","LDA","LDI","STA","STI","ADD","SUB",
-    "JMP","JMZ","AND","IOR","XOR","ADL","ADC","SBB","NEG","COM",
-    "CLR","SET","RTL","RTR","LSL","LSR","ASR","TST","CLC","SEC",
-    "TCA","TVA","JAL","NOP"};
-
-  if ((upp == 0) && (low == 0)) {
-    return "HLT";
-  } else if (upp == 0) {
-    return "EXT";
-  } else if (upp == 15) {
-    return code[low + 16];
-  }
-  return code[upp+1];
-}
-
-//workaround for switch statement
-int mnemonic_int(int upp, int low) {
-  if ((upp == 0)&&(low==0)) {
+  if (!instr.compare("HLT")) {
     return 0;
-  } else if (upp == 0) {
-    return 1;
-  } else if (upp == 15) {
-    return low+16;
+  } else if (!instr.compare("EXT")) {
+    if (!good_arg) {
+      error = 6;
+    }
+    if ((arg_val < 16 && arg_val > -9) || (arg_val > 255)) {
+      error = 6;
+    }
+    if (arg_val == 0) {
+      error = 5;
+    }
+    return 240&arg_val;
+  } else if (!instr.compare("LDA")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+16;
+  } else if (!instr.compare("LDI")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+32;
+  } else if (!instr.compare("STA")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+48;
+  } else if (!instr.compare("STI")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+64;
+  } else if (!instr.compare("ADD")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+80;
+  } else if (!instr.compare("SUB")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+96;
+  } else if (!instr.compare("JMP")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+112;
+  } else if (!instr.compare("JMZ")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+128;
+  } else if (!instr.compare("AND")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+144;
+  } else if (!instr.compare("IOR")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+160;
+  } else if (!instr.compare("XOR")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+176;
+  } else if (!instr.compare("ADL")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+192;
+  } else if (!instr.compare("ADC")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+208;
+  } else if (!instr.compare("SBB")) {
+    if (!better_arg) {
+      error = 6;
+    }
+    return better_val+224;
+  } else if (!instr.compare("NEG")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 240;
+  } else if (!instr.compare("COM")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 241;
+  } else if (!instr.compare("CLR")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 242;
+  } else if (!instr.compare("SET")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 243;
+  } else if (!instr.compare("RTL")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 244;
+  } else if (!instr.compare("RTR")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 245;
+  } else if (!instr.compare("LSL")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 246;
+  } else if (!instr.compare("LSR")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 247;
+  } else if (!instr.compare("ASR")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 248;
+  } else if (!instr.compare("TST")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 249;
+  } else if (!instr.compare("CLC")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 250;
+  } else if (!instr.compare("SEC")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 251;
+  } else if (!instr.compare("TCA")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 252;
+  } else if (!instr.compare("TVA")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 253;
+  } else if (!instr.compare("JAL")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 254;
+  } else if (!instr.compare("NOP")) {
+    if (good_arg) {
+      error = 6;
+    }
+    return 255;
   }
 
-  return upp+1;
-}
-
-//the actual scram simulator
-vector<string> scram_sim(vector<int> &mem, int &error) {
-
-  //used for char conversion
-  vector<string> h2c {"0","1","2","3","4","5",
-    "6","7","8","9","A","B","C","D","E","F"};
-  vector<string> out;
-  int len = mem.size();
-  if (len > 255) {
-    len = 255;
-  }
-
-  int pc = 0;//program counter
-  int acc = 0;//accumulator
-  int c = 0;//carry out
-  int ext = 0;//used for ext
-  int extlast = 0;//used to reset ext
-  bool hlt = false;//true when sim is over
-  while (!hlt) {
-    if (pc > len) {//if attempting to execute past length
-      error = 4;//error code
-      return out;
-    }
-    int ind = 0;
-    int address = pc;
-    int val = mem[pc];
-    pair<int,int> instr = upp_low(val);
-    int upp = instr.first;
-    int low = instr.second;
-    string mne = mnemonic(upp,low);
-    if (ext == extlast) {
-      ext = 0;//resetting ext
-    }
-    extlast = ext;
-    int pos = mnemonic_int(upp,low);
-
-    switch(pos) {
-      case 0://hlt
-        hlt = true;
-        error = 0;
-        break;
-      case 1://ext
-        ext = low;
-        break;
-      case 2://lda
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = mem[ind];
-        break;
-      case 3://ldi
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        ind = mem[ind];
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = mem[ind];
-        break;
-      case 4://sta
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 6;
-          return out;
-        }
-        mem[ind] = acc;
-        break;
-      case 5://sti
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        ind = mem[ind];
-        if (ind > len) {
-          error = 6;
-          return out;
-        }
-        mem[ind] = acc;
-        break;
-      case 6://add
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = acc + mem[ind];
-        if (acc > 256) {
-          acc = acc%256;
-          c = 1;
-        }
-        break;
-      case 7://sub
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        if (acc > 256 || acc < 0) {
-          acc = acc%256;
-          c = 1;
-        }
-        acc = acc - mem[ind];
-
-        break;
-      case 8://jmp
-        ind = ext*16+low;
-        if (ind > len-1) {
-          error = 5;
-          return out;
-        }
-        pc = ind-1;
-        break;
-      case 9://jmz
-        if (acc != 0) break;
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        pc = ind-1;
-        break;
-      case 10://and
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = acc&mem[ind];
-        break;
-      case 11://ior
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = acc|mem[ind];
-        break;
-      case 12://xor
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = acc^mem[ind];
-        break;
-      case 13://adl
-        acc = acc+low*16;
-        if (acc > 256) {
-          acc = acc%256;
-          c = 1;
-        }
-        break;
-      case 14://adc
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = acc + mem[ind]+c;
-        if (acc > 256) {
-          acc = acc%256;
-          c = 1;
-        }
-        break;
-      case 15://sbb
-        ind = ext*16+low;
-        if (ind > len) {
-          error = 5;
-          return out;
-        }
-        acc = acc + (-1*mem[ind])-1 + c;
-        if (acc > 256 || acc < 0) {
-          acc = acc%256;
-          c = 1;
-        }
-        break;
-      case 16://neg
-        acc = -1*acc;
-        break;
-      case 17://com
-        acc = -1*acc-1;
-        break;
-      case 19://clr
-        acc = 0;
-        break;
-      case 20://set
-        acc = 255;
-        break;
-      case 21://rtl
-        acc = (acc<<1)|((acc>>7)&255);
-        break;
-      case 22://rtr
-        acc = (acc<<7)|((acc>>1)&255);
-        break;
-      case 23://lsl
-        acc = (acc<<1)&254;
-        break;
-      case 24://lsr
-        acc = (acc>>1)&127;
-        break;
-      case 25://asr
-        acc = ((acc>>1)&127)|(acc&128);
-        break;
-      case 26://tst
-        if (acc != 0) {
-          acc = 1;
-        }
-        break;
-      case 27://clc
-        c = 0;
-        break;
-      case 28://sec
-        c = 1;
-        break;
-      case 29://tca
-        acc = c;
-        break;
-      case 30://tva
-        acc = 1;
-        break;
-      case 31://jal
-        pc = acc-1;
-        acc = pc+1;
-        break;
-      case 32://nop
-        break;
-    }
-
-    pair<int,int> add_split = upp_low(address);
-    string line = "";
-    line = "0x" + h2c[add_split.first] +
-      h2c[add_split.second] + "  " + mne;
-    if (arg_bool(val)) {
-      line = line + " 0x0" + h2c[low];
-    } else {
-      line = line + "     ";
-    }
-    line = line + "    ACC=0x";
-    pair<int,int> acc_split = upp_low(acc);
-    line = line + h2c[acc_split.first] + h2c[acc_split.second];
-    out.push_back(line);
-    pc++;
-  }
-
-  return out;
-}
-
-//returns 0 if good op, 1 if bad
-int bad_op(string instr) {
-
+  error = 5;
+  return 0;
 }
 
 //helper function which counts # of words
@@ -466,32 +345,156 @@ vector<string> process_inp(vector<string> inp, int &error) {
       }
     }
 
-    line = label_str + instr_str + arg_str;
-
-    if (line.size() != 0) {
-      out.push_back(line);
+    if (label_str.size()+instr_str.size()+arg_str.size()) {
+      out.push_back(label_str);
+      out.push_back(instr_str);
+      out.push_back(arg_str);
     }
   }
 
   return out;
 }
 
+//processing to ints
+vector<int> to_bin(vector<string> inp, int &error) {
+  int pc = -1;//program counter
+  vector<int> bin(256,0);
+  map<string,int> labels;
+
+  //reading all the labels first
+  for (unsigned int i = 0; i < inp.size(); i+=3) {
+    if (pc > 255) {//program too large
+      error = 4;
+      return bin;
+    }
+    string label = inp[i];
+    string instr = inp[i+1];
+    string arg = inp[i+2];
+
+    int good_arg = 0;//attempting to read arg value
+    int arg_val = 0;
+    if (arg.size()) {//if arg exists
+      good_arg = 1;
+      try {
+        arg_val = stoi(arg,nullptr,0);
+      } catch (const std::invalid_argument& e) {
+        good_arg = 0;
+      }
+    }
+
+    if (label.size()) {//attempting to read label
+      if (pc < 0) {//label error check
+        error = 9;
+        return bin;
+      }
+      label = label.substr(0,label.size()-1);//label still has colon
+      map<string,int>::iterator it = labels.find(label);
+      if (it == labels.end()) {//if label is undeclared
+        labels[label] = pc;
+      } else {//if label is already declared
+        error = 7;
+        return bin;
+      }
+    }
+
+    if (instr.size()) {//reading instr
+      if (!instr.compare("ORG")) {
+        if (label.size()) {//check if label on ORG
+          error = 7;
+          return bin;
+        }
+        if (!(good_arg&&arg.size())) {
+          error = 6;
+          return bin;
+        }
+        pc = arg_val;
+      } else if (instr.size()) {
+        pc++;
+      }
+    }
+  }
+
+  //main bin production block
+  pc = -1;
+  for (unsigned int i = 0; i < inp.size(); i+=3) {
+    if (pc > 255) {//if program too large
+      error = 4;
+      return bin;
+    }
+    string instr = inp[i+1];
+    string arg = inp[i+2];
+
+    int good_arg = 0;//attempting to read arg value
+    int arg_val = 0;
+    if (arg.size()) {//if arg exists
+      good_arg = 1;
+      map<string,int>::iterator it = labels.find(arg);
+      if (it != labels.end()) {
+        arg_val = it->second;//arg is label value
+      } else try {
+        arg_val = stoi(arg,nullptr,0);
+      } catch (const std::invalid_argument& e) {
+        good_arg = 0;
+      }
+
+      if (!good_arg) {//may require more testing
+        error = 8;
+        return bin;
+      }
+    }
+
+    if (instr.size()) {
+      if (!instr.compare("ORG")) {
+        if (!arg.size()) {
+          error = 6;
+          return bin;
+        }
+        pc = arg_val;
+      } else if (!instr.compare("DAT")) {
+        if (!arg.size()) {
+          error = 6;
+          return bin;
+        }
+        bin[pc] = arg_val;
+        pc++;
+      } else {
+        int place = bin_val(instr,good_arg,arg_val,error);
+        if (error) {
+          return bin;
+        }
+        bin[pc] = place;
+        pc++;
+      }
+    }
+  }
+
+  return bin;
+}
+
+//main, takes 2 optional arguments (inFile,outFile)
 int main(int argc, char* arg[]) {
   vector<string> inp;//scram data
-  vector<int> bin[256];
   int error = 0;
   if (argc == 1) {//read from stdin
     inp = stdin_vector(inp);
   } else if (argc == 2 || argc == 3) {
-    inp = filein_vector(inp,arg[1]);
-    if (inp[0].compare("ErRoR")) {//if file cannot be read
+    inp = filein_vector(inp,arg[1],error);
+    if (error) {//if file cannot be read
+      error_check(error);
       return 2;
     }
   } else {
+    error_check(1);
     return 1;
   }
 
   vector<string> inp_new = process_inp(inp,error);
+  if (error) {
+    error_check(error);
+    return error;
+  }
+
+  vector<int> bin = to_bin(inp_new,error);
   if (error) {
     error_check(error);
     return error;
@@ -505,9 +508,19 @@ int main(int argc, char* arg[]) {
   for (unsigned int i = 0; i <inp_new.size(); i++) {
     cout << inp_new[i] << " pos=" << i << "\n";
   }
+  cout << "\n";
+  cout << "binsize=" << bin.size() << "\n";
+  for (unsigned int i = 0; i < bin.size(); i++) {
+    cout << bin[i] << " ";
+  }
+  cout << "\n";
   //end debug hell
 
-  vector<string> output;//output of asm
+  if (argc == 3) {
+    fileout_bin(bin,arg[2],error);
+  } else {
+    stdout_bin(bin)
+  }
 
   return 0;
 }
