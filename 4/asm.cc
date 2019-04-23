@@ -42,6 +42,10 @@ vector<string> filein_vector(vector<string> &vect, string fn, int &error) {
 
 //takes bin and prints to stdout
 void stdout_bin(vector<int> vect, int &error) {
+  for (unsigned int i = 0; i < vect.size(); i++) {
+    unsigned char ch = (unsigned char)vect[i];
+    cout << ch;
+  }
   return;
 }
 
@@ -488,12 +492,14 @@ int main(int argc, char* arg[]) {
     return 1;
   }
 
+  //process input, seperates all words
   vector<string> inp_new = process_inp(inp,error);
   if (error) {
     error_check(error);
     return error;
   }
 
+  //place instructions into scram
   vector<int> bin = to_bin(inp_new,error);
   if (error) {
     error_check(error);
@@ -516,10 +522,15 @@ int main(int argc, char* arg[]) {
   cout << "\n";
   //end debug hell
 
-  if (argc == 3) {
+  if (argc == 3) {//print to file
     fileout_bin(bin,arg[2],error);
-  } else {
-    stdout_bin(bin)
+  } else {//print to stdout
+    stdout_bin(bin,error);
+  }
+
+  if (error) {//one last error check
+    error_check(error);
+    return error;
   }
 
   return 0;
