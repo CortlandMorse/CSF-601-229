@@ -403,6 +403,14 @@ int main(int argc, char* arg[]) {
     return 1;
   }
 
+  //debug hell
+  cout << "memsize=" << mem.size() << "\n";
+  for (unsigned int i = 0; i < mem.size(); i++) {
+    cout << mem[i] << " ";
+  }
+  cout << "\n";
+  //debug hell end
+
   vector<string> output;//output of simulation
   int error = 1;
   output = scram_sim(mem,error);

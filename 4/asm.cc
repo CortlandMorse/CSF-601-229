@@ -112,18 +112,18 @@ int bin_val(string instr, int good_arg, int arg_val, int &error) {
     better_val = arg_val&15;
   }
   if (!instr.compare("HLT")) {
-    return 0;
-  } else if (!instr.compare("EXT")) {
-    if (!good_arg) {
+    if (better_arg) {
       error = 6;
     }
-    if ((arg_val < 16 && arg_val > -9) || (arg_val > 255)) {
+    return 0;
+  } else if (!instr.compare("EXT")) {
+    if (!better_arg) {
       error = 6;
     }
     if (arg_val == 0) {
       error = 5;
     }
-    return 240&arg_val;
+    return better_val;
   } else if (!instr.compare("LDA")) {
     if (!better_arg) {
       error = 6;
@@ -327,6 +327,10 @@ vector<string> process_inp(vector<string> inp, int &error) {
         s >> instr_str;
       }
     } else if (w_count == 3) {
+        if (isspace(line[0])) {
+          error = 6;
+          return out;
+        }
         s >> label_str;
         s >> instr_str;
         s >> arg_str;
@@ -340,11 +344,25 @@ vector<string> process_inp(vector<string> inp, int &error) {
         error = 7;
         return out;
       }
+      for (unsigned int i = 0; i < pos-1; i++) {
+        if (!isalnum(label_str[i]) && (label_str[i] != '_')) {//can only be alnum
+          error = 7;
+          return out;
+        }
+      }
     }
 
     if (instr_str.size()) {
       if (instr_str.size() != 3) {
         error = 5;
+        return out;
+      }
+    }
+
+    if (arg_str.size()) {
+      size_t pos = arg_str.find(".");
+      if (pos != string::npos) {
+        error = 6;
         return out;
       }
     }
@@ -367,10 +385,6 @@ vector<int> to_bin(vector<string> inp, int &error) {
 
   //reading all the labels first
   for (unsigned int i = 0; i < inp.size(); i+=3) {
-    if (pc > 255) {//program too large
-      error = 4;
-      return bin;
-    }
     string label = inp[i];
     string instr = inp[i+1];
     string arg = inp[i+2];
@@ -388,12 +402,16 @@ vector<int> to_bin(vector<string> inp, int &error) {
 
     if (label.size()) {//attempting to read label
       if (pc < 0) {//label error check
-        error = 9;
+        error = 7;
         return bin;
       }
       label = label.substr(0,label.size()-1);//label still has colon
       map<string,int>::iterator it = labels.find(label);
       if (it == labels.end()) {//if label is undeclared
+        if (pc > 255) {//program too large
+          error = 4;
+          return bin;
+        }
         labels[label] = pc;
       } else {//if label is already declared
         error = 7;
@@ -421,10 +439,6 @@ vector<int> to_bin(vector<string> inp, int &error) {
   //main bin production block
   pc = -1;
   for (unsigned int i = 0; i < inp.size(); i+=3) {
-    if (pc > 255) {//if program too large
-      error = 4;
-      return bin;
-    }
     string instr = inp[i+1];
     string arg = inp[i+2];
 
@@ -435,13 +449,25 @@ vector<int> to_bin(vector<string> inp, int &error) {
       map<string,int>::iterator it = labels.find(arg);
       if (it != labels.end()) {
         arg_val = it->second;//arg is label value
+        if (!instr.compare("EXT")) {
+          arg_val = ((arg_val)&240)>>4;
+        } else if ((instr.compare("DAT")) && (arg_val < -8 || arg_val > 15)) {
+          arg_val = arg_val&15;
+        }
       } else try {
         arg_val = stoi(arg,nullptr,0);
       } catch (const std::invalid_argument& e) {
         good_arg = 0;
       }
 
-      if (!good_arg) {//may require more testing
+      if (!good_arg) {//mainly for unresolved label
+        arg_val = 1;
+        good_arg = 1;
+        int needs_arg = bin_val(instr,good_arg,arg_val,error);
+        if ((!needs_arg) || (needs_arg >= 240)) {//if instr shouldnt have label
+          error = 6;
+          return bin;
+        }
         error = 8;
         return bin;
       }
@@ -458,12 +484,23 @@ vector<int> to_bin(vector<string> inp, int &error) {
         if (!arg.size()) {
           error = 6;
           return bin;
+        } else if ((arg_val < 0) || (arg_val > 255)) {
+          error = 6;
+          return bin;
+        }
+        if (pc > 255) {//program too large
+          error = 4;
+          return bin;
         }
         bin[pc] = arg_val;
         pc++;
       } else {
         int place = bin_val(instr,good_arg,arg_val,error);
         if (error) {
+          return bin;
+        }
+        if (pc > 255) {//program too large
+          error = 4;
           return bin;
         }
         bin[pc] = place;
@@ -505,22 +542,6 @@ int main(int argc, char* arg[]) {
     error_check(error);
     return error;
   }
-
-  //debug hell
-  for (unsigned int i = 0; i < inp.size(); i++) {
-    cout << inp[i] << " pos="<< i << "\n";
-  }
-  cout << "\n";
-  for (unsigned int i = 0; i <inp_new.size(); i++) {
-    cout << inp_new[i] << " pos=" << i << "\n";
-  }
-  cout << "\n";
-  cout << "binsize=" << bin.size() << "\n";
-  for (unsigned int i = 0; i < bin.size(); i++) {
-    cout << bin[i] << " ";
-  }
-  cout << "\n";
-  //end debug hell
 
   if (argc == 3) {//print to file
     fileout_bin(bin,arg[2],error);
