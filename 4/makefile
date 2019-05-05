@@ -3,8 +3,8 @@
 CC=g++
 CFLAGS=-g -Wall
 
-asm: asm.cc
-	$(CC) $(CFLAGS) -o asm asm.cc
+asm: branch.cc
+	$(CC) $(CFLAGS) -o branch branch.cc
 
 clean:
-	$(RM) *.o asm
+	$(RM) *.o branch
